@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 import {
   createIssue,
@@ -34,6 +34,7 @@ const createWindow = async () => {
     minHeight: 760,
     backgroundColor: '#08111f',
     titleBarStyle: 'hiddenInset',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -41,6 +42,8 @@ const createWindow = async () => {
       sandbox: false
     }
   });
+
+  win.setMenuBarVisibility(false);
 
   try {
     if (devServerUrl) {
@@ -101,6 +104,7 @@ const registerIpc = () => {
 };
 
 app.whenReady().then(async () => {
+  Menu.setApplicationMenu(null);
   registerIpc();
   const settings = getSettings();
   configureWatchers();

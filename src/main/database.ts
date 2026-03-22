@@ -85,6 +85,7 @@ const migrate = (database: BetterDb) => {
       untracked_count INTEGER NOT NULL DEFAULT 0,
       git_available INTEGER NOT NULL DEFAULT 1,
       last_checked_at TEXT,
+      last_commit_at TEXT,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
 
@@ -135,6 +136,13 @@ const migrate = (database: BetterDb) => {
       scan_interval_minutes INTEGER NOT NULL DEFAULT 10
     );
   `);
+
+  const gitSnapshotColumns = (database.prepare('PRAGMA table_info(git_snapshots)').all() as Array<{ name: string }>).map(
+    (column) => column.name
+  );
+  if (!gitSnapshotColumns.includes('last_commit_at')) {
+    database.exec('ALTER TABLE git_snapshots ADD COLUMN last_commit_at TEXT;');
+  }
 };
 
 const seedSettings = (database: BetterDb) => {
@@ -179,7 +187,8 @@ const mapProjectSummary = (row: Record<string, unknown>): ProjectSummary => ({
     unstagedCount: Number(row.unstaged_count ?? 0),
     untrackedCount: Number(row.untracked_count ?? 0),
     gitAvailable: Boolean(row.git_available ?? 1),
-    lastCheckedAt: row.last_checked_at ? String(row.last_checked_at) : null
+    lastCheckedAt: row.last_checked_at ? String(row.last_checked_at) : null,
+    lastCommitAt: row.last_commit_at ? String(row.last_commit_at) : null
   },
   counts: {
     notes: Number(row.note_count ?? 0),
@@ -365,7 +374,7 @@ export const listProjectSummaries = (filters?: { query?: string; rootId?: string
     .prepare(
       `SELECT
         p.*,
-        g.branch, g.is_repo, g.is_dirty, g.ahead, g.behind, g.staged_count, g.unstaged_count, g.untracked_count, g.git_available, g.last_checked_at,
+        g.branch, g.is_repo, g.is_dirty, g.ahead, g.behind, g.staged_count, g.unstaged_count, g.untracked_count, g.git_available, g.last_checked_at, g.last_commit_at,
         (SELECT COUNT(*) FROM project_notes pn WHERE pn.project_id = p.id) AS note_count,
         (SELECT COUNT(*) FROM todo_items t WHERE t.project_id = p.id AND t.status != 'done') AS open_todo_count,
         (SELECT COUNT(*) FROM issues i WHERE i.project_id = p.id AND i.status NOT IN ('resolved', 'closed')) AS open_issue_count
@@ -385,7 +394,7 @@ export const getProjectDetail = (projectId: string): ProjectDetail | null => {
     .prepare(
       `SELECT
         p.*,
-        g.branch, g.is_repo, g.is_dirty, g.ahead, g.behind, g.staged_count, g.unstaged_count, g.untracked_count, g.git_available, g.last_checked_at,
+        g.branch, g.is_repo, g.is_dirty, g.ahead, g.behind, g.staged_count, g.unstaged_count, g.untracked_count, g.git_available, g.last_checked_at, g.last_commit_at,
         (SELECT COUNT(*) FROM project_notes pn WHERE pn.project_id = p.id) AS note_count,
         (SELECT COUNT(*) FROM todo_items t WHERE t.project_id = p.id AND t.status != 'done') AS open_todo_count,
         (SELECT COUNT(*) FROM issues i WHERE i.project_id = p.id AND i.status NOT IN ('resolved', 'closed')) AS open_issue_count
@@ -434,13 +443,27 @@ export const getDashboardStats = (): DashboardStats => {
        LIMIT 24`
     )
     .all() as Record<string, unknown>[]).map(mapTodoBoardItem);
+  const recentProjects = (database
+    .prepare(
+      `SELECT
+         p.*,
+         g.branch, g.is_repo, g.is_dirty, g.ahead, g.behind, g.staged_count, g.unstaged_count, g.untracked_count, g.git_available, g.last_checked_at, g.last_commit_at,
+         (SELECT COUNT(*) FROM project_notes pn WHERE pn.project_id = p.id) AS note_count,
+         (SELECT COUNT(*) FROM todo_items t WHERE t.project_id = p.id AND t.status != 'done') AS open_todo_count,
+         (SELECT COUNT(*) FROM issues i WHERE i.project_id = p.id AND i.status NOT IN ('resolved', 'closed')) AS open_issue_count
+       FROM projects p
+       LEFT JOIN git_snapshots g ON g.project_id = p.id
+       ORDER BY COALESCE(g.last_commit_at, p.last_seen_at) DESC, p.name COLLATE NOCASE
+       LIMIT 6`
+    )
+    .all() as Record<string, unknown>[]).map(mapProjectSummary);
 
   return {
     totalProjects: Number(projectCounts.total_projects ?? 0),
     dirtyProjects: Number(projectCounts.dirty_projects ?? 0),
     openTodos: Number(todos.total ?? 0),
     openIssues: Number(issues.total ?? 0),
-    recentProjects: listProjectSummaries().slice(0, 6),
+    recentProjects,
     openTaskItems
   };
 };
@@ -488,9 +511,9 @@ export const upsertDiscoveredProject = (input: {
 
   database
     .prepare(
-      `INSERT INTO git_snapshots
-       (project_id, branch, is_repo, is_dirty, ahead, behind, staged_count, unstaged_count, untracked_count, git_available, last_checked_at)
-       VALUES (@projectId, @branch, @isRepo, @isDirty, @ahead, @behind, @stagedCount, @unstagedCount, @untrackedCount, @gitAvailable, @lastCheckedAt)
+       `INSERT INTO git_snapshots
+        (project_id, branch, is_repo, is_dirty, ahead, behind, staged_count, unstaged_count, untracked_count, git_available, last_checked_at, last_commit_at)
+        VALUES (@projectId, @branch, @isRepo, @isDirty, @ahead, @behind, @stagedCount, @unstagedCount, @untrackedCount, @gitAvailable, @lastCheckedAt, @lastCommitAt)
        ON CONFLICT(project_id) DO UPDATE SET
          branch = excluded.branch,
          is_repo = excluded.is_repo,
@@ -501,9 +524,10 @@ export const upsertDiscoveredProject = (input: {
          unstaged_count = excluded.unstaged_count,
          untracked_count = excluded.untracked_count,
          git_available = excluded.git_available,
-         last_checked_at = excluded.last_checked_at`
-    )
-    .run({
+         last_checked_at = excluded.last_checked_at,
+         last_commit_at = excluded.last_commit_at`
+     )
+     .run({
       projectId,
       branch: input.git.branch,
       isRepo: input.git.isRepo ? 1 : 0,
@@ -514,7 +538,8 @@ export const upsertDiscoveredProject = (input: {
       unstagedCount: input.git.unstagedCount,
       untrackedCount: input.git.untrackedCount,
       gitAvailable: input.git.gitAvailable ? 1 : 0,
-      lastCheckedAt: input.git.lastCheckedAt
+      lastCheckedAt: input.git.lastCheckedAt,
+      lastCommitAt: input.git.lastCommitAt
     });
 
   return projectId;

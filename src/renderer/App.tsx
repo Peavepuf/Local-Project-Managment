@@ -1043,20 +1043,23 @@ const DashboardTaskCard = ({
   t: (key: string) => string;
   locale: Locale;
   onOpen: () => void;
-}) => (
-  <button className="task-feed-card" onClick={onOpen} type="button">
-    <div className="item-card-top">
-      <strong>{task.title}</strong>
-      <span className={`badge priority-${task.priority}`}>{t(task.priority)}</span>
-    </div>
-    <p>{task.description || EMPTY_VALUE}</p>
-    <div className="task-feed-meta">
-      <span>{task.projectName}</span>
-      <span>{translateStackType(task.projectStackType, locale)}</span>
-      <span>{t(task.status === 'doing' ? 'inProgress' : 'backlog')}</span>
-    </div>
-  </button>
-);
+}) => {
+  const taskText = task.description.trim() || task.title.trim() || EMPTY_VALUE;
+
+  return (
+    <button className="task-feed-card" onClick={onOpen} type="button">
+      <div className="item-card-top">
+        <span className={`badge priority-${task.priority}`}>{t(task.priority)}</span>
+      </div>
+      <p>{taskText}</p>
+      <div className="task-feed-meta">
+        <span>{task.projectName}</span>
+        <span>{translateStackType(task.projectStackType, locale)}</span>
+        <span>{t(task.status === 'doing' ? 'inProgress' : 'backlog')}</span>
+      </div>
+    </button>
+  );
+};
 
 const TodoColumn = ({
   title,
@@ -1128,41 +1131,44 @@ const TodoCard = ({
   t: (key: string) => string;
   onStatusChange: (id: string, status: TodoStatus) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-}) => (
-  <div className={todo.status === 'done' ? 'item-card completed-card' : 'item-card'}>
-    <div className="item-card-top">
-      <strong>{todo.title}</strong>
+}) => {
+  const taskText = todo.description.trim() || todo.title.trim() || EMPTY_VALUE;
+
+  return (
+    <div className={todo.status === 'done' ? 'item-card completed-card' : 'item-card'}>
+      <div className="item-card-top">
+        <div className="row-actions compact-actions card-actions">
+          <span className={`badge priority-${todo.priority}`}>{t(todo.priority)}</span>
+        </div>
+      </div>
+      <p>{taskText}</p>
       <div className="row-actions compact-actions card-actions">
-        <span className={`badge priority-${todo.priority}`}>{t(todo.priority)}</span>
+        {todo.status !== 'todo' && todo.status !== 'done' && (
+          <button className="ghost-button" onClick={() => void onStatusChange(todo.id, 'todo')}>
+            {t('moveToTodo')}
+          </button>
+        )}
+        {todo.status !== 'doing' && todo.status !== 'done' && (
+          <button className="ghost-button" onClick={() => void onStatusChange(todo.id, 'doing')}>
+            {t('moveToDoing')}
+          </button>
+        )}
+        {todo.status !== 'done' ? (
+          <button className="ghost-button success-text" onClick={() => void onStatusChange(todo.id, 'done')}>
+            {t('complete')}
+          </button>
+        ) : (
+          <button className="ghost-button" onClick={() => void onStatusChange(todo.id, 'todo')}>
+            {t('moveToTodo')}
+          </button>
+        )}
+        <button className="ghost-button danger-text" onClick={() => void onDelete(todo.id)}>
+          {t('delete')}
+        </button>
       </div>
     </div>
-    <p>{todo.description || EMPTY_VALUE}</p>
-    <div className="row-actions compact-actions card-actions">
-      {todo.status !== 'todo' && todo.status !== 'done' && (
-        <button className="ghost-button" onClick={() => void onStatusChange(todo.id, 'todo')}>
-          {t('moveToTodo')}
-        </button>
-      )}
-      {todo.status !== 'doing' && todo.status !== 'done' && (
-        <button className="ghost-button" onClick={() => void onStatusChange(todo.id, 'doing')}>
-          {t('moveToDoing')}
-        </button>
-      )}
-      {todo.status !== 'done' ? (
-        <button className="ghost-button success-text" onClick={() => void onStatusChange(todo.id, 'done')}>
-          {t('complete')}
-        </button>
-      ) : (
-        <button className="ghost-button" onClick={() => void onStatusChange(todo.id, 'todo')}>
-          {t('moveToTodo')}
-        </button>
-      )}
-      <button className="ghost-button danger-text" onClick={() => void onDelete(todo.id)}>
-        {t('delete')}
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 const IssueCard = ({
   issue,

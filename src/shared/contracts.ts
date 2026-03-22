@@ -25,6 +25,7 @@ export interface GitSnapshot {
   untrackedCount: number;
   gitAvailable: boolean;
   lastCheckedAt: string | null;
+  lastCommitAt: string | null;
 }
 
 export interface ProjectSummary {

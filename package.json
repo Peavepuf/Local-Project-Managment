@@ -2,7 +2,7 @@
   "name": "local-project-managment",
   "version": "0.1.0",
   "private": true,
-  "description": "Fabri-Lab Proje Yönetim Yazılımı - geliştiriciler için local-first masaüstü proje yönetimi.",
+  "description": "Fabri-Lab Project Management Software - local-first desktop project management for developers.",
   "main": "dist-electron/main/main.js",
   "author": "Peavepuf",
   "license": "MIT",
@@ -35,7 +35,7 @@
   },
   "build": {
     "appId": "com.peavepuf.localprojectmanagment",
-    "productName": "Fabri-Lab Proje Yönetim Yazılımı",
+    "productName": "Fabri-Lab Proje Y?netim Yaz?l?m?",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",

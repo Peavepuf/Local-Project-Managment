@@ -112,13 +112,15 @@ const detectGitSnapshot = (projectPath: string) => {
       unstagedCount: 0,
       untrackedCount: 0,
       gitAvailable: true,
-      lastCheckedAt: nowIso()
+      lastCheckedAt: nowIso(),
+      lastCommitAt: null
     };
   }
 
   try {
     const branch = runGit(projectPath, ['rev-parse', '--abbrev-ref', 'HEAD']);
     const porcelain = runGit(projectPath, ['status', '--porcelain=2', '--branch']);
+    const lastCommitAt = runGit(projectPath, ['log', '-1', '--format=%cI']) || null;
 
     let ahead = 0;
     let behind = 0;
@@ -150,7 +152,8 @@ const detectGitSnapshot = (projectPath: string) => {
       unstagedCount,
       untrackedCount,
       gitAvailable: true,
-      lastCheckedAt: nowIso()
+      lastCheckedAt: nowIso(),
+      lastCommitAt
     };
   } catch {
     return {
@@ -163,7 +166,8 @@ const detectGitSnapshot = (projectPath: string) => {
       unstagedCount: 0,
       untrackedCount: 0,
       gitAvailable: false,
-      lastCheckedAt: nowIso()
+      lastCheckedAt: nowIso(),
+      lastCommitAt: null
     };
   }
 };

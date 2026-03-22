@@ -67,7 +67,7 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) minmax(250px, 300px);
+  grid-template-columns: minmax(308px, 352px) minmax(0, 1fr) minmax(250px, 300px);
   height: 100vh;
   overflow: hidden;
 }
@@ -522,11 +522,13 @@ textarea {
 
 .composer-grid-wide {
   grid-template-columns: minmax(220px, 1fr);
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 var(--space-4);
 }
 
 .composer-grid-wide .primary-button {
   justify-self: start;
+  min-width: 132px;
 }
 
 .filters {
@@ -619,6 +621,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+  margin-top: var(--space-4);
 }
 
 .completed-tasks {
@@ -627,6 +630,12 @@ textarea {
   margin-top: var(--space-5);
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
+}
+
+.panel > .stack-list,
+.panel > .todo-board + .empty-state,
+.panel > .stack-list + .empty-state {
+  margin-top: var(--space-4);
 }
 
 .completed-list {
@@ -744,7 +753,7 @@ textarea {
 
 @media (max-width: 1380px) {
   .app-shell {
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 308px minmax(0, 1fr);
   }
 
   .context-rail {
