@@ -1,0 +1,52 @@
+{
+  "name": "local-project-managment",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fabri-Lab Proje Yönetim Yazılımı - geliştiriciler için local-first masaüstü proje yönetimi.",
+  "main": "dist-electron/main/main.js",
+  "author": "Peavepuf",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on tcp:5173 file:dist-electron/main/main.js && set VITE_DEV_SERVER_URL=http://localhost:5173&& set ELECTRON_RUN_AS_NODE=&& electronmon dist-electron/main/main.js\"",
+    "build": "rimraf dist dist-electron && vite build && tsc -p tsconfig.electron.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "start": "npm run build && set ELECTRON_RUN_AS_NODE=&& electron .",
+    "postinstall": "electron-builder install-app-deps",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^35.0.3",
+    "electron-builder": "^25.1.8",
+    "electronmon": "^2.0.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.peavepuf.localprojectmanagment",
+    "productName": "Fabri-Lab Proje Yönetim Yazılımı",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
